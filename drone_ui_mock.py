@@ -5,10 +5,10 @@ from PyQt5.QtWidgets import (QApplication, QMainWindow, QVBoxLayout, QHBoxLayout
                            QWidget, QPushButton, QLabel, QSpinBox, QLineEdit, 
                            QTextEdit, QTabWidget, QGridLayout, QGroupBox, 
                            QComboBox, QDoubleSpinBox, QMessageBox, QTableWidget,
-                           QTableWidgetItem, QHeaderView)
+                           QTableWidgetItem, QHeaderView, QCheckBox)
 from PyQt5.QtCore import QTimer, pyqtSignal, QObject, QThread
 from PyQt5.QtGui import QFont
-from drone_controller import DroneController
+from drone_controller_mock import DroneController
 
 
 class StatusUpdateWorker(QObject):
@@ -37,11 +37,11 @@ class StatusUpdateWorker(QObject):
 class DroneControlUI(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.controller = DroneController()
+        self.controller = DroneController(use_mock=True)
         self.status_worker = None
         self.status_thread = None
         
-        self.setWindowTitle("Drone Control Interface")
+        self.setWindowTitle("Drone Control Interface (Mock Mode)")
         self.setGeometry(100, 100, 1200, 800)
         
         self.init_ui()
@@ -76,6 +76,11 @@ class DroneControlUI(QMainWindow):
         connection_widget = QWidget()
         layout = QVBoxLayout(connection_widget)
         
+        # Mock mode indicator
+        mock_label = QLabel("🔧 MOCK MODE: Using simulated drones for testing")
+        mock_label.setStyleSheet("QLabel { background-color: #fff3cd; color: #856404; padding: 10px; border-radius: 5px; }")
+        layout.addWidget(mock_label)
+        
         # Number of UAVs section
         uav_group = QGroupBox("UAV Configuration")
         uav_layout = QHBoxLayout(uav_group)
@@ -84,7 +89,7 @@ class DroneControlUI(QMainWindow):
         self.uav_count_spinbox = QSpinBox()
         self.uav_count_spinbox.setMinimum(1)
         self.uav_count_spinbox.setMaximum(10)
-        self.uav_count_spinbox.setValue(1)
+        self.uav_count_spinbox.setValue(3)  # Default to 3 for demo
         self.uav_count_spinbox.valueChanged.connect(self.update_connection_fields)
         uav_layout.addWidget(self.uav_count_spinbox)
         
@@ -142,10 +147,12 @@ class DroneControlUI(QMainWindow):
         
         self.arm_btn = QPushButton("ARM")
         self.arm_btn.clicked.connect(self.arm_vehicle)
+        self.arm_btn.setStyleSheet("QPushButton { background-color: #28a745; color: white; padding: 8px; }")
         basic_layout.addWidget(self.arm_btn, 0, 0)
         
         self.disarm_btn = QPushButton("DISARM")
         self.disarm_btn.clicked.connect(self.disarm_vehicle)
+        self.disarm_btn.setStyleSheet("QPushButton { background-color: #dc3545; color: white; padding: 8px; }")
         basic_layout.addWidget(self.disarm_btn, 0, 1)
         
         # Takeoff controls
@@ -159,16 +166,19 @@ class DroneControlUI(QMainWindow):
         
         self.takeoff_btn = QPushButton("TAKEOFF")
         self.takeoff_btn.clicked.connect(self.takeoff_vehicle)
+        self.takeoff_btn.setStyleSheet("QPushButton { background-color: #007bff; color: white; padding: 8px; }")
         takeoff_layout.addWidget(self.takeoff_btn)
         
         basic_layout.addLayout(takeoff_layout, 1, 0, 1, 2)
         
         self.land_btn = QPushButton("LAND")
         self.land_btn.clicked.connect(self.land_vehicle)
+        self.land_btn.setStyleSheet("QPushButton { background-color: #ffc107; color: black; padding: 8px; }")
         basic_layout.addWidget(self.land_btn, 2, 0)
         
         self.rtl_btn = QPushButton("RTL")
         self.rtl_btn.clicked.connect(self.rtl_vehicle)
+        self.rtl_btn.setStyleSheet("QPushButton { background-color: #6c757d; color: white; padding: 8px; }")
         basic_layout.addWidget(self.rtl_btn, 2, 1)
         
         layout.addWidget(basic_group)
@@ -179,18 +189,22 @@ class DroneControlUI(QMainWindow):
         
         self.arm_all_btn = QPushButton("ARM ALL")
         self.arm_all_btn.clicked.connect(self.arm_all_vehicles)
+        self.arm_all_btn.setStyleSheet("QPushButton { background-color: #28a745; color: white; padding: 10px; font-weight: bold; }")
         all_layout.addWidget(self.arm_all_btn, 0, 0)
         
         self.takeoff_all_btn = QPushButton("TAKEOFF ALL")
         self.takeoff_all_btn.clicked.connect(self.takeoff_all_vehicles)
+        self.takeoff_all_btn.setStyleSheet("QPushButton { background-color: #007bff; color: white; padding: 10px; font-weight: bold; }")
         all_layout.addWidget(self.takeoff_all_btn, 0, 1)
         
         self.land_all_btn = QPushButton("LAND ALL")
         self.land_all_btn.clicked.connect(self.land_all_vehicles)
+        self.land_all_btn.setStyleSheet("QPushButton { background-color: #ffc107; color: black; padding: 10px; font-weight: bold; }")
         all_layout.addWidget(self.land_all_btn, 1, 0)
         
         self.rtl_all_btn = QPushButton("RTL ALL")
         self.rtl_all_btn.clicked.connect(self.rtl_all_vehicles)
+        self.rtl_all_btn.setStyleSheet("QPushButton { background-color: #6c757d; color: white; padding: 10px; font-weight: bold; }")
         all_layout.addWidget(self.rtl_all_btn, 1, 1)
         
         layout.addWidget(all_group)
@@ -236,6 +250,7 @@ class DroneControlUI(QMainWindow):
         
         self.send_ned_btn = QPushButton("Send NED Position")
         self.send_ned_btn.clicked.connect(self.send_ned_position)
+        self.send_ned_btn.setStyleSheet("QPushButton { background-color: #17a2b8; color: white; padding: 8px; }")
         ned_layout.addWidget(self.send_ned_btn, 3, 0, 1, 2)
         
         layout.addWidget(ned_group)
@@ -248,16 +263,19 @@ class DroneControlUI(QMainWindow):
         self.target_lat = QDoubleSpinBox()
         self.target_lat.setRange(-90, 90)
         self.target_lat.setDecimals(6)
+        self.target_lat.setValue(37.7749)  # San Francisco
         yaw_layout.addWidget(self.target_lat, 0, 1)
         
         yaw_layout.addWidget(QLabel("Target Longitude:"), 1, 0)
         self.target_lon = QDoubleSpinBox()
         self.target_lon.setRange(-180, 180)
         self.target_lon.setDecimals(6)
+        self.target_lon.setValue(-122.4194)  # San Francisco
         yaw_layout.addWidget(self.target_lon, 1, 1)
         
         self.yaw_to_target_btn = QPushButton("Yaw to Target")
         self.yaw_to_target_btn.clicked.connect(self.yaw_to_target)
+        self.yaw_to_target_btn.setStyleSheet("QPushButton { background-color: #6f42c1; color: white; padding: 8px; }")
         yaw_layout.addWidget(self.yaw_to_target_btn, 2, 0, 1, 2)
         
         layout.addWidget(yaw_group)
@@ -285,6 +303,7 @@ class DroneControlUI(QMainWindow):
         refresh_layout = QHBoxLayout()
         self.auto_refresh_btn = QPushButton("Start Auto Refresh")
         self.auto_refresh_btn.clicked.connect(self.toggle_auto_refresh)
+        self.auto_refresh_btn.setStyleSheet("QPushButton { background-color: #20c997; color: white; padding: 8px; }")
         refresh_layout.addWidget(self.auto_refresh_btn)
         
         self.manual_refresh_btn = QPushButton("Manual Refresh")
@@ -315,8 +334,8 @@ class DroneControlUI(QMainWindow):
             field_layout.addWidget(QLabel(f"UAV {i+1}:"))
             
             line_edit = QLineEdit()
-            line_edit.setPlaceholderText(f"e.g., tcp:127.0.0.1:{14550+i}")
-            line_edit.setText(f"tcp:127.0.0.1:{14550+i}")  # Default connection string
+            line_edit.setPlaceholderText(f"Mock connection {i+1}")
+            line_edit.setText(f"mock://vehicle_{i+1}")  # Mock connection string
             field_layout.addWidget(line_edit)
             
             self.connection_fields.append(line_edit)
@@ -369,12 +388,12 @@ class DroneControlUI(QMainWindow):
             QMessageBox.warning(self, "Warning", "No connection strings provided!")
             return
             
-        self.connection_status.append("Connecting to vehicles...")
+        self.connection_status.append("Connecting to mock vehicles...")
         
         # Connect in a separate thread to avoid freezing UI
         def connect_thread():
             connected_count = self.controller.connect_vehicles()
-            self.connection_status.append(f"Connected to {connected_count} vehicles successfully.")
+            self.connection_status.append(f"Connected to {connected_count} mock vehicles successfully.")
             
             if connected_count > 0:
                 self.connect_btn.setEnabled(False)
@@ -498,9 +517,11 @@ class DroneControlUI(QMainWindow):
         if self.status_timer.isActive():
             self.status_timer.stop()
             self.auto_refresh_btn.setText("Start Auto Refresh")
+            self.auto_refresh_btn.setStyleSheet("QPushButton { background-color: #20c997; color: white; padding: 8px; }")
         else:
             self.status_timer.start(1000)  # Update every second
             self.auto_refresh_btn.setText("Stop Auto Refresh")
+            self.auto_refresh_btn.setStyleSheet("QPushButton { background-color: #dc3545; color: white; padding: 8px; }")
             
     def update_status_display(self):
         """Update the status display table"""
@@ -508,7 +529,14 @@ class DroneControlUI(QMainWindow):
             if self.controller.vehicles[i]:
                 status = self.controller.get_vehicle_status(i)
                 if status:
-                    self.status_table.setItem(i, 1, QTableWidgetItem("Yes" if status['armed'] else "No"))
+                    # Armed status with color coding
+                    armed_item = QTableWidgetItem("Yes" if status['armed'] else "No")
+                    if status['armed']:
+                        armed_item.setBackground(armed_item.background().color().fromRgb(144, 238, 144))  # Light green
+                    else:
+                        armed_item.setBackground(armed_item.background().color().fromRgb(255, 182, 193))  # Light red
+                    self.status_table.setItem(i, 1, armed_item)
+                    
                     self.status_table.setItem(i, 2, QTableWidgetItem(status['mode']))
                     self.status_table.setItem(i, 3, QTableWidgetItem(f"{status['altitude']:.1f}"))
                     self.status_table.setItem(i, 4, QTableWidgetItem(f"{status['battery']:.1f}"))

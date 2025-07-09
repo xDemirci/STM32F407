@@ -1,0 +1,4 @@
+PyQt5==5.15.9
+dronekit==2.9.2
+pymavlink==2.4.37
+pyserial==3.5
